@@ -2,7 +2,7 @@ import inspect
 import math
 import operator
 import re
-from collections import Counter
+from collections import Counter, deque
 from functools import partial, reduce as _reduce
 from itertools import (
     chain,
@@ -326,16 +326,16 @@ def prop_eq(name, v, dct):
 @curry
 def head(x):
     try:
-        return x[0]
-    except IndexError:
-        return type(x)() if not isinstance(x, (list, tuple)) else None
+        return next(iter(x))
+    except StopIteration:
+        return x.__class__() if not isinstance(x, (list, tuple)) else None
 
 
 @curry
 def tail(x):
     try:
-        return x[-1]
-    except IndexError:
+        return next(reverse(x))
+    except StopIteration:
         return x.__class__() if not isinstance(x, (list, tuple)) else None
 
 
@@ -702,14 +702,30 @@ def drop_last(n, lst):
     return lst[:-n]
 
 
-@curry
-def take(n, lst):
-    return lst[:n]
+def _take_iterable(n, it):
+    for i, el in enumerate(it, start=1):
+        if i > n:
+            return
+        yield el
 
 
 @curry
-def take_last(n, lst):
-    return lst[-n:]
+def take(n, it):
+    try:
+        return it[:n]
+    except TypeError:
+        return _take_iterable(n, it)
+
+
+@curry
+def take_last(n, it):
+    try:
+        return it[-n:]
+    except TypeError:
+        # There is no effective generator's tail traverse
+        q = deque(maxlen=n)
+        q.extend(it)
+        return q
 
 
 @curry

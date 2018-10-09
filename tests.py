@@ -1,11 +1,11 @@
 import json
 import unittest
 
-from pyfp import *
-from pyfp import __
+from pyfn import *
+from pyfn import __
 
 
-class PyFPTestCase(unittest.TestCase):
+class PyFNTestCase(unittest.TestCase):
     def test_trim(self):
         x = "  hello   "
         y = "hello"
@@ -85,12 +85,25 @@ class PyFPTestCase(unittest.TestCase):
         self.assertEqual(tail(b"qwe"), ord("e"))
         self.assertEqual(tail(b""), b"")
 
+        def gen():
+            yield "foo"
+            yield "bar"
+
+        self.assertEqual(tail(gen()), "bar")
+
     def test_head(self):
         self.assertEqual(head([1, 2, 3]), 1)
         self.assertEqual(head([]), None)
         self.assertEqual(head(()), None)
         self.assertEqual(head("abc"), "a")
+        self.assertEqual(head(""), "")
         self.assertEqual(head(b"abc"), ord("a"))
+
+        def gen():
+            yield "foo"
+            yield "bar"
+
+        self.assertEqual(head(gen()), "foo")
 
     def test_init(self):
         self.assertEqual(init(["a", "b", "c"]), ["b", "c"])
@@ -560,11 +573,29 @@ class PyFPTestCase(unittest.TestCase):
         self.assertEqual(take(2, ["foo", "bar", "baz"]), ["foo", "bar"])
         self.assertEqual(take(5, ["foo", "bar", "baz"]), ["foo", "bar", "baz"])
 
+        def gen():
+            yield "foo"
+            yield "bar"
+            yield "baz"
+
+        self.assertEqual(list(take(2, gen())), ["foo", "bar"])
+        self.assertEqual(list(take(5, gen())), ["foo", "bar", "baz"])
+
     def test_take_last(self):
         self.assertEqual(take_last(1, ["foo", "bar", "baz"]), ["baz"])
         self.assertEqual(take_last(2, ["foo", "bar", "baz"]), ["bar", "baz"])
         self.assertEqual(take_last(3, ["foo", "bar", "baz"]), ["foo", "bar", "baz"])
         self.assertEqual(take_last(4, ["foo", "bar", "baz"]), ["foo", "bar", "baz"])
+
+        def gen():
+            yield "foo"
+            yield "bar"
+            yield "baz"
+
+        self.assertEqual(list(take_last(1, gen())), ["baz"])
+        self.assertEqual(list(take_last(2, gen())), ["bar", "baz"])
+        self.assertEqual(list(take_last(3, gen())), ["foo", "bar", "baz"])
+        self.assertEqual(list(take_last(4, gen())), ["foo", "bar", "baz"])
 
     def test_times(self):
         self.assertEqual(list(times(add(1), 5)), [1, 2, 3, 4, 5])
