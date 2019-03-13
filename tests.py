@@ -285,19 +285,6 @@ class PyFNTestCase(unittest.TestCase):
     def test_attr_or_none(self):
         self.assertIsNone(attr_or_none("a")(object()))
 
-    def test_pick_obj(self):
-        class O:
-            a = "hello"
-            b = "world"
-
-        new = pick(["a", "c"], O())
-        self.assertEqual(new.a, "hello")
-
-        with self.assertRaises(AttributeError):
-            new.b
-        with self.assertRaises(AttributeError):
-            new.c
-
     def test_pick_dict(self):
         d = {"a": 5, "b": 6}
         new = pick({"a", "c"}, d)
@@ -315,57 +302,12 @@ class PyFNTestCase(unittest.TestCase):
 
         self.assertDictEqual(merge(d1, d2), {"a": 5, "b": 7, "c": 8})
 
-    def test_merge_obj(self):
-        class O:
-            pass
-
-        o1 = O()
-        o1.a = 5
-        o1.b = 6
-
-        o2 = O()
-        o2.b = 7
-        o2.c = 8
-
-        new = merge(o1, o2)
-
-        self.assertEqual(new.a, 5)
-        self.assertEqual(new.b, 7)
-        self.assertEqual(new.c, 8)
-
-        with self.assertRaises(AttributeError):
-            new.d
-
-        # Add new attribute
-        new.d = "hello"
-        self.assertEqual(new.d, "hello")
-
-        # Override proxy attribute
-        new.c = "world"
-        self.assertEqual(new.c, "world")
-        self.assertNotEqual(o2.c, "world")
-
     def test_merge_all_dict(self):
         d1 = {"a": 1}
         d2 = {"b": 1}
         d3 = {"c": 1}
 
         self.assertDictEqual(merge_all(d1, d2, d3), {"a": 1, "b": 1, "c": 1})
-
-    def test_merge_all_obj(self):
-        class O:
-            pass
-
-        o1, o2, o3 = O(), O(), O()
-        o1.a = 1
-        o2.b = 1
-        o3.c = 1
-
-        new = merge_all(o1, o2, o3)
-
-        self.assertEqual(new.a, 1)
-        self.assertEqual(new.b, 1)
-        self.assertEqual(new.c, 1)
 
     def test_sort(self):
         gen = (x for x in [3, 7, 5, 1])
@@ -606,6 +548,9 @@ class PyFNTestCase(unittest.TestCase):
     def test_union(self):
         self.assertEqual(union([1, 2, 3], [3, 4]), {1, 2, 3, 4})
 
+    def test_intersection(self):
+        self.assertEqual(intersection([1, 2, 3], [2, 3, 4]), {2, 3})
+
     def test_uniq_by(self):
         self.assertEqual(list(uniq_by(round, [1.1, 1.2, 1.3, 2])), [1.1, 2])
 
@@ -718,5 +663,59 @@ class PyFNTestCase(unittest.TestCase):
         self.assertEqual(mean([2, 3, 4]), 3)
 
 
+def benchmarks():
+    from time import time
+    import math
+
+    inp = "1 2 3 4 5"
+    result = "3,8,16,28,45"
+    n = 3000
+
+    functional = pipe(
+        split(" "),
+        map_(
+            pipe(
+                int,
+                add(2),
+                subtract(__, 1),
+                sqrt,
+                pow_(__, 5),
+                divide(__, 2),
+                ceil,
+                str,
+            )
+        ),
+        join(","),
+    )
+
+    def imperative(x):
+        lst = x.split()
+        tmp = []
+
+        for el in lst:
+            number = int(el)
+            number += 2
+            number -= 1
+            number = number ** 0.5
+            number = number ** 5
+            number /= 2
+            number = math.ceil(number)
+            tmp.append(str(number))
+        return ",".join(tmp)
+
+    assert functional(inp) == imperative(inp) == result
+
+    start = time()
+    for _ in range(n):
+        functional(inp)
+    print("Functional:", time() - start)
+
+    start = time()
+    for _ in range(n):
+        imperative(inp)
+    print("Imperative:", time() - start)
+
+
 if __name__ == "__main__":
+    benchmarks()
     unittest.main()
